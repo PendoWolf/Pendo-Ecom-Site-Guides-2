@@ -1,60 +1,71 @@
-import { useState } from 'react'
+import { useState } from "react";
 
 const questions = [
   {
-    id: 'crust',
-    prompt: 'How flaky was the crust?',
-    options: ['Needs work', 'Solid flake', 'Shatteringly perfect'],
+    id: "crust",
+    prompt: "How flaky was the crust?",
+    options: ["Needs work", "Solid flake", "Shatteringly perfect"],
   },
   {
-    id: 'flavor',
-    prompt: 'Did the filling riot hard enough?',
-    options: ['Too polite', 'Just right', 'Full mutiny'],
+    id: "flavor",
+    prompt: "Did the filling riot hard enough?",
+    options: ["Too polite", "Just right", "Full mutiny"],
   },
   {
-    id: 'shipping',
-    prompt: 'How was chilled delivery?',
-    options: ['Warm & sad', 'Acceptable', 'Ice-cold heroics'],
+    id: "shipping",
+    prompt: "How was chilled delivery?",
+    options: ["Warm & sad", "Acceptable", "Ice-cold heroics"],
   },
   {
-    id: 'reorder',
-    prompt: 'Would you order again?',
-    options: ['Maybe', 'Yes', 'Already craving'],
+    id: "reorder",
+    prompt: "Would you order again?",
+    options: ["Maybe", "Yes", "Already craving"],
   },
-]
+];
 
 export default function Poll() {
-  const [answers, setAnswers] = useState({})
-  const [submitted, setSubmitted] = useState(false)
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
 
-  const allAnswered = questions.every((q) => answers[q.id])
+  const allAnswered = questions.every((q) => answers[q.id]);
 
   const onSubmit = (e) => {
-    e.preventDefault()
-    if (!allAnswered) return
-    const existing = JSON.parse(localStorage.getItem('pieriot-polls') || '[]')
-    existing.push({ answers, at: new Date().toISOString() })
-    localStorage.setItem('pieriot-polls', JSON.stringify(existing))
-    setSubmitted(true)
-  }
+    e.preventDefault();
+    if (!allAnswered) return;
+    const existing = JSON.parse(localStorage.getItem("pieriot-polls") || "[]");
+    existing.push({ answers, at: new Date().toISOString() });
+    localStorage.setItem("pieriot-polls", JSON.stringify(existing));
+
+    window.pendo?.track("experience_rating_submitted", {
+      crust_rating: answers.crust,
+      flavor_rating: answers.flavor,
+      shipping_rating: answers.shipping,
+      reorder_intent: answers.reorder,
+    });
+
+    setSubmitted(true);
+  };
 
   if (submitted) {
     return (
       <div className="page empty-state">
         <h1>Thanks for voting</h1>
-        <p>Your ratings help us decide which pie gets the next experimental spice rack.</p>
+        <p>
+          Your ratings help us decide which pie gets the next experimental spice
+          rack.
+        </p>
         <button
           type="button"
           className="btn btn--secondary"
           onClick={() => {
-            setAnswers({})
-            setSubmitted(false)
+            setAnswers({});
+            setSubmitted(false);
           }}
         >
           Rate again
         </button>
       </div>
-    )
+    );
   }
 
   return (
@@ -73,7 +84,7 @@ export default function Poll() {
                 <label
                   key={option}
                   className={`chip chip--radio ${
-                    answers[question.id] === option ? 'is-active' : ''
+                    answers[question.id] === option ? "is-active" : ""
                   }`}
                 >
                   <input
@@ -92,10 +103,14 @@ export default function Poll() {
           </fieldset>
         ))}
 
-        <button type="submit" className="btn btn--primary" disabled={!allAnswered}>
+        <button
+          type="submit"
+          className="btn btn--primary"
+          disabled={!allAnswered}
+        >
           Submit ratings
         </button>
       </form>
     </div>
-  )
+  );
 }

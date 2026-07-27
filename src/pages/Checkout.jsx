@@ -1,24 +1,24 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { formatPrice } from '../data/pies'
-import { useCart } from '../context/CartContext'
-import { useProfile } from '../context/ProfileContext'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { formatPrice } from "../data/pies";
+import { useCart } from "../context/CartContext";
+import { useProfile } from "../context/ProfileContext";
 
 export default function Checkout() {
-  const navigate = useNavigate()
-  const { items, subtotal, clearCart } = useCart()
-  const { profile, updateProfile, hasShippingAddress } = useProfile()
+  const navigate = useNavigate();
+  const { items, subtotal, clearCart } = useCart();
+  const { profile, updateProfile, hasShippingAddress } = useProfile();
   const [payment, setPayment] = useState({
-    cardName: profile.fullName || '',
-    cardNumber: '',
-    expiry: '',
-    cvc: '',
-  })
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+    cardName: profile.fullName || "",
+    cardNumber: "",
+    expiry: "",
+    cvc: "",
+  });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const shipping = subtotal >= 75 || subtotal === 0 ? 0 : 8
-  const total = subtotal + shipping
+  const shipping = subtotal >= 75 || subtotal === 0 ? 0 : 8;
+  const total = subtotal + shipping;
 
   if (items.length === 0) {
     return (
@@ -29,30 +29,35 @@ export default function Checkout() {
           Shop pies
         </Link>
       </div>
-    )
+    );
   }
 
   const handleSubmit = (e) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     if (!hasShippingAddress) {
-      setError('Save a complete shipping address on your profile before placing an order.')
-      return
+      setError(
+        "Save a complete shipping address on your profile before placing an order.",
+      );
+      return;
     }
 
     if (
       !payment.cardName.trim() ||
-      payment.cardNumber.replace(/\s/g, '').length < 12 ||
+      payment.cardNumber.replace(/\s/g, "").length < 12 ||
       !payment.expiry.trim() ||
       payment.cvc.trim().length < 3
     ) {
-      setError('Please fill in complete payment details (demo — no charge made).')
-      return
+      setError(
+        "Please fill in complete payment details (demo — no charge made).",
+      );
+      return;
     }
 
-    setSubmitting(true)
-    const orderId = `PR-${Date.now().toString().slice(-8)}`
+    setSubmitting(true);
+    const orderId = `PR-${Date.now().toString().slice(-8)}`;
+    const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
     const order = {
       orderId,
       items,
@@ -61,17 +66,31 @@ export default function Checkout() {
       total,
       shippingAddress: { ...profile },
       placedAt: new Date().toISOString(),
-    }
-    sessionStorage.setItem('pieriot-last-order', JSON.stringify(order))
-    clearCart()
-    navigate(`/success/${orderId}`)
-  }
+    };
+    sessionStorage.setItem("pieriot-last-order", JSON.stringify(order));
+
+    window.pendo?.track("order_placed", {
+      orderId,
+      itemCount: items.length,
+      totalQuantity,
+      subtotal,
+      shipping,
+      total,
+      freeShipping: shipping === 0,
+      hasDeliveryNotes: Boolean(profile.deliveryNotes?.trim()),
+    });
+
+    clearCart();
+    navigate(`/success/${orderId}`);
+  };
 
   return (
     <div className="page checkout">
       <header className="page-header">
         <h1>Checkout</h1>
-        <p>Confirm shipping, enter payment, and let the pies start their journey.</p>
+        <p>
+          Confirm shipping, enter payment, and let the pies start their journey.
+        </p>
       </header>
 
       <form className="checkout__layout" onSubmit={handleSubmit}>
@@ -88,12 +107,12 @@ export default function Checkout() {
                 <strong>{profile.fullName}</strong>
                 <br />
                 {profile.address1}
-                {profile.address2 ? `, ${profile.address2}` : ''}
+                {profile.address2 ? `, ${profile.address2}` : ""}
                 <br />
                 {profile.city}, {profile.state} {profile.zip}
                 <br />
                 {profile.email}
-                {profile.phone ? ` · ${profile.phone}` : ''}
+                {profile.phone ? ` · ${profile.phone}` : ""}
                 {profile.deliveryNotes && (
                   <>
                     <br />
@@ -115,7 +134,9 @@ export default function Checkout() {
               <textarea
                 rows="2"
                 value={profile.deliveryNotes}
-                onChange={(e) => updateProfile({ deliveryNotes: e.target.value })}
+                onChange={(e) =>
+                  updateProfile({ deliveryNotes: e.target.value })
+                }
                 placeholder="Gate code, porch preference, pie urgency level..."
               />
             </label>
@@ -128,7 +149,9 @@ export default function Checkout() {
               <span>Name on card</span>
               <input
                 value={payment.cardName}
-                onChange={(e) => setPayment({ ...payment, cardName: e.target.value })}
+                onChange={(e) =>
+                  setPayment({ ...payment, cardName: e.target.value })
+                }
                 autoComplete="cc-name"
               />
             </label>
@@ -136,7 +159,9 @@ export default function Checkout() {
               <span>Card number</span>
               <input
                 value={payment.cardNumber}
-                onChange={(e) => setPayment({ ...payment, cardNumber: e.target.value })}
+                onChange={(e) =>
+                  setPayment({ ...payment, cardNumber: e.target.value })
+                }
                 placeholder="4242 4242 4242 4242"
                 autoComplete="cc-number"
               />
@@ -146,7 +171,9 @@ export default function Checkout() {
                 <span>Expiry</span>
                 <input
                   value={payment.expiry}
-                  onChange={(e) => setPayment({ ...payment, expiry: e.target.value })}
+                  onChange={(e) =>
+                    setPayment({ ...payment, expiry: e.target.value })
+                  }
                   placeholder="MM/YY"
                   autoComplete="cc-exp"
                 />
@@ -155,7 +182,9 @@ export default function Checkout() {
                 <span>CVC</span>
                 <input
                   value={payment.cvc}
-                  onChange={(e) => setPayment({ ...payment, cvc: e.target.value })}
+                  onChange={(e) =>
+                    setPayment({ ...payment, cvc: e.target.value })
+                  }
                   placeholder="123"
                   autoComplete="cc-csc"
                 />
@@ -182,18 +211,22 @@ export default function Checkout() {
           </div>
           <div className="cart__row">
             <span>Shipping</span>
-            <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+            <span>{shipping === 0 ? "Free" : formatPrice(shipping)}</span>
           </div>
           <div className="cart__row cart__row--total">
             <span>Total</span>
             <span>{formatPrice(total)}</span>
           </div>
           {error && <p className="form-error">{error}</p>}
-          <button type="submit" className="btn btn--primary btn--block" disabled={submitting}>
-            {submitting ? 'Placing order…' : `Pay ${formatPrice(total)}`}
+          <button
+            type="submit"
+            className="btn btn--primary btn--block"
+            disabled={submitting}
+          >
+            {submitting ? "Placing order…" : `Pay ${formatPrice(total)}`}
           </button>
         </aside>
       </form>
     </div>
-  )
+  );
 }

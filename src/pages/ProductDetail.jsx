@@ -1,24 +1,24 @@
-import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import PieVisual from '../components/PieVisual'
-import { crusts, formatPrice, getPieBySlug, sizes } from '../data/pies'
-import { useCart } from '../context/CartContext'
+import { useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import PieVisual from "../components/PieVisual";
+import { crusts, formatPrice, getPieBySlug, sizes } from "../data/pies";
+import { useCart } from "../context/CartContext";
 
 export default function ProductDetail() {
-  const { slug } = useParams()
-  const pie = getPieBySlug(slug)
-  const { addItem } = useCart()
-  const [size, setSize] = useState('classic')
-  const [crust, setCrust] = useState('flaky')
-  const [quantity, setQuantity] = useState(1)
-  const [gallery, setGallery] = useState('hero')
-  const [added, setAdded] = useState(false)
+  const { slug } = useParams();
+  const pie = getPieBySlug(slug);
+  const { addItem } = useCart();
+  const [size, setSize] = useState("classic");
+  const [crust, setCrust] = useState("flaky");
+  const [quantity, setQuantity] = useState(1);
+  const [gallery, setGallery] = useState("hero");
+  const [added, setAdded] = useState(false);
 
   const unitPrice = useMemo(() => {
-    if (!pie) return 0
-    const sizeMeta = sizes.find((s) => s.id === size)
-    return Math.round(pie.price * (sizeMeta?.multiplier || 1) * 100) / 100
-  }, [pie, size])
+    if (!pie) return 0;
+    const sizeMeta = sizes.find((s) => s.id === size);
+    return Math.round(pie.price * (sizeMeta?.multiplier || 1) * 100) / 100;
+  }, [pie, size]);
 
   if (!pie) {
     return (
@@ -29,17 +29,26 @@ export default function ProductDetail() {
           Back to shop
         </Link>
       </div>
-    )
+    );
   }
 
   const handleAdd = () => {
-    addItem(
-      { ...pie, price: unitPrice },
-      { size, crust, quantity },
-    )
-    setAdded(true)
-    window.setTimeout(() => setAdded(false), 2200)
-  }
+    addItem({ ...pie, price: unitPrice }, { size, crust, quantity });
+
+    window.pendo?.track("product_added_to_cart", {
+      productId: pie.id,
+      productName: pie.name,
+      category: pie.category,
+      size,
+      crust,
+      quantity,
+      unitPrice,
+      rating: pie.rating,
+    });
+
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 2200);
+  };
 
   return (
     <div className="page product-detail">
@@ -52,16 +61,24 @@ export default function ProductDetail() {
       <div className="product-detail__layout">
         <div className="product-detail__gallery">
           <div className="product-detail__stage">
-            <PieVisual colors={pie.colors} view={gallery} className="product-detail__pie" />
+            <PieVisual
+              colors={pie.colors}
+              view={gallery}
+              className="product-detail__pie"
+            />
           </div>
-          <div className="product-detail__thumbs" role="tablist" aria-label="Gallery views">
+          <div
+            className="product-detail__thumbs"
+            role="tablist"
+            aria-label="Gallery views"
+          >
             {pie.gallery.map((view) => (
               <button
                 key={view}
                 type="button"
                 role="tab"
                 aria-selected={gallery === view}
-                className={gallery === view ? 'is-active' : ''}
+                className={gallery === view ? "is-active" : ""}
                 onClick={() => setGallery(view)}
               >
                 <PieVisual colors={pie.colors} view={view} />
@@ -72,7 +89,9 @@ export default function ProductDetail() {
         </div>
 
         <div className="product-detail__info">
-          <p className="eyebrow">{pie.category} · ★ {pie.rating}</p>
+          <p className="eyebrow">
+            {pie.category} · ★ {pie.rating}
+          </p>
           <h1>{pie.name}</h1>
           <p className="product-detail__tagline">{pie.tagline}</p>
           <p className="product-detail__price">{formatPrice(unitPrice)}</p>
@@ -85,7 +104,7 @@ export default function ProductDetail() {
                 <button
                   key={option.id}
                   type="button"
-                  className={`chip ${size === option.id ? 'is-active' : ''}`}
+                  className={`chip ${size === option.id ? "is-active" : ""}`}
                   onClick={() => setSize(option.id)}
                 >
                   {option.label}
@@ -102,7 +121,7 @@ export default function ProductDetail() {
                 <button
                   key={option.id}
                   type="button"
-                  className={`chip ${crust === option.id ? 'is-active' : ''}`}
+                  className={`chip ${crust === option.id ? "is-active" : ""}`}
                   onClick={() => setCrust(option.id)}
                 >
                   {option.label}
@@ -119,11 +138,17 @@ export default function ProductDetail() {
                 min="1"
                 max="12"
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                onChange={(e) =>
+                  setQuantity(Math.max(1, Number(e.target.value) || 1))
+                }
               />
             </label>
-            <button type="button" className="btn btn--primary" onClick={handleAdd}>
-              {added ? 'Added to cart!' : 'Add to cart'}
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={handleAdd}
+            >
+              {added ? "Added to cart!" : "Add to cart"}
             </button>
           </div>
 
@@ -132,7 +157,7 @@ export default function ProductDetail() {
               <strong>Serve</strong> {pie.heat}
             </li>
             <li>
-              <strong>Ingredients</strong> {pie.ingredients.join(', ')}
+              <strong>Ingredients</strong> {pie.ingredients.join(", ")}
             </li>
             <li>
               <Link to="/warning" className="text-link">
@@ -143,5 +168,5 @@ export default function ProductDetail() {
         </div>
       </div>
     </div>
-  )
+  );
 }

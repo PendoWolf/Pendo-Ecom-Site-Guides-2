@@ -1,12 +1,12 @@
-import { Link } from 'react-router-dom'
-import PieVisual from '../components/PieVisual'
-import { formatPrice, sizes, crusts } from '../data/pies'
-import { useCart } from '../context/CartContext'
+import { Link } from "react-router-dom";
+import PieVisual from "../components/PieVisual";
+import { formatPrice, sizes, crusts } from "../data/pies";
+import { useCart } from "../context/CartContext";
 
 export default function Cart() {
-  const { items, subtotal, updateQuantity, removeItem } = useCart()
-  const shipping = subtotal >= 75 || subtotal === 0 ? 0 : 8
-  const total = subtotal + shipping
+  const { items, subtotal, updateQuantity, removeItem } = useCart();
+  const shipping = subtotal >= 75 || subtotal === 0 ? 0 : 8;
+  const total = subtotal + shipping;
 
   if (items.length === 0) {
     return (
@@ -17,7 +17,7 @@ export default function Cart() {
           Shop pies
         </Link>
       </div>
-    )
+    );
   }
 
   return (
@@ -30,8 +30,10 @@ export default function Cart() {
       <div className="cart__layout">
         <ul className="cart__list">
           {items.map((item) => {
-            const sizeLabel = sizes.find((s) => s.id === item.size)?.label || item.size
-            const crustLabel = crusts.find((c) => c.id === item.crust)?.label || item.crust
+            const sizeLabel =
+              sizes.find((s) => s.id === item.size)?.label || item.size;
+            const crustLabel =
+              crusts.find((c) => c.id === item.crust)?.label || item.crust;
             return (
               <li key={item.lineId} className="cart__item">
                 <Link to={`/pie/${item.slug}`} className="cart__visual">
@@ -54,14 +56,27 @@ export default function Cart() {
                         max="12"
                         value={item.quantity}
                         onChange={(e) =>
-                          updateQuantity(item.lineId, Number(e.target.value) || 1)
+                          updateQuantity(
+                            item.lineId,
+                            Number(e.target.value) || 1,
+                          )
                         }
                       />
                     </label>
                     <button
                       type="button"
                       className="text-link"
-                      onClick={() => removeItem(item.lineId)}
+                      onClick={() => {
+                        window.pendo?.track("cart_item_removed", {
+                          productName: item.name,
+                          size: item.size,
+                          crust: item.crust,
+                          quantity: item.quantity,
+                          price: item.price,
+                          remainingCartItems: items.length - 1,
+                        });
+                        removeItem(item.lineId);
+                      }}
                     >
                       Remove
                     </button>
@@ -71,7 +86,7 @@ export default function Cart() {
                   {formatPrice(item.price * item.quantity)}
                 </p>
               </li>
-            )
+            );
           })}
         </ul>
 
@@ -83,7 +98,7 @@ export default function Cart() {
           </div>
           <div className="cart__row">
             <span>Shipping</span>
-            <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+            <span>{shipping === 0 ? "Free" : formatPrice(shipping)}</span>
           </div>
           {shipping > 0 && (
             <p className="cart__hint">Free shipping on orders $75+</p>
@@ -101,5 +116,5 @@ export default function Cart() {
         </aside>
       </div>
     </div>
-  )
+  );
 }

@@ -37,6 +37,18 @@ export default function ProductDetail() {
       { ...pie, price: unitPrice },
       { size, crust, quantity },
     )
+    /* eslint-disable no-undef */
+    pendo.track('product_added_to_cart', {
+      productId: pie.id,
+      productName: pie.name,
+      category: pie.category,
+      size,
+      crust,
+      quantity,
+      unitPrice,
+      rating: pie.rating,
+    })
+    /* eslint-enable no-undef */
     setAdded(true)
     window.setTimeout(() => setAdded(false), 2200)
   }

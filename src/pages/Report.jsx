@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { trackEvent } from '../utils/pendo'
 
 const topics = [
   'Order issue',
@@ -27,6 +28,11 @@ export default function Report() {
     const reports = JSON.parse(localStorage.getItem('pieriot-reports') || '[]')
     reports.push({ ...form, at: new Date().toISOString() })
     localStorage.setItem('pieriot-reports', JSON.stringify(reports))
+    // Topic only; name, email and message text are deliberately excluded (PII / free text).
+    trackEvent('feedback_report_submitted', {
+      topic: form.topic,
+      message_length: form.message.trim().length,
+    })
     setSent(true)
   }
 

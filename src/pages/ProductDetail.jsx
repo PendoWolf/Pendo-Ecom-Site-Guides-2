@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import PieVisual from '../components/PieVisual'
 import { crusts, formatPrice, getPieBySlug, sizes } from '../data/pies'
 import { useCart } from '../context/CartContext'
+import { roundMoney, trackEvent } from '../utils/pendo'
 
 export default function ProductDetail() {
   const { slug } = useParams()
@@ -37,6 +38,16 @@ export default function ProductDetail() {
       { ...pie, price: unitPrice },
       { size, crust, quantity },
     )
+    // Captures the chosen variant and computed price, which a button click cannot.
+    trackEvent('product_added_to_cart', {
+      productId: pie.id,
+      slug: pie.slug,
+      category: pie.category,
+      size,
+      crust,
+      quantity,
+      unitPrice: roundMoney(unitPrice),
+    })
     setAdded(true)
     window.setTimeout(() => setAdded(false), 2200)
   }

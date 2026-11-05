@@ -1,8 +1,10 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { roundMoney, trackEvent } from '../utils/pendo'
 
 const CartContext = createContext(null)
 const STORAGE_KEY = 'pieriot-cart'
 
+// eslint-disable-next-line react/prop-types
 export function CartProvider({ children }) {
   const [items, setItems] = useState(() => {
     try {
@@ -13,7 +15,11 @@ export function CartProvider({ children }) {
     }
   })
 
+  // Latest items for analytics lookups in handlers without changing their identity.
+  const itemsRef = useRef(items)
+
   useEffect(() => {
+    itemsRef.current = items
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
   }, [items])
 
@@ -56,6 +62,22 @@ export function CartProvider({ children }) {
   }
 
   const removeItem = (lineId) => {
+    const currentItems = itemsRef.current
+    const removed = currentItems.find((item) => item.lineId === lineId)
+    if (removed) {
+      // Identifies which pie/variant was dropped from the cart.
+      trackEvent('cart_item_removed', {
+        productId: removed.productId,
+        slug: removed.slug,
+        size: removed.size,
+        crust: removed.crust,
+        quantity: removed.quantity,
+        line_value: roundMoney(removed.price * removed.quantity),
+        remaining_cart_count: currentItems
+          .filter((item) => item.lineId !== lineId)
+          .reduce((sum, item) => sum + item.quantity, 0),
+      })
+    }
     setItems((prev) => prev.filter((item) => item.lineId !== lineId))
   }
 

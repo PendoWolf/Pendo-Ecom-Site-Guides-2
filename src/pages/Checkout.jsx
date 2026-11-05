@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { formatPrice } from '../data/pies'
 import { useCart } from '../context/CartContext'
 import { useProfile } from '../context/ProfileContext'
+import { roundMoney, trackEvent } from '../utils/pendo'
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -32,11 +33,22 @@ export default function Checkout() {
     )
   }
 
+  // Records why an order attempt was blocked, to measure checkout friction.
+  const trackValidationFailure = (failureReason) => {
+    trackEvent('checkout_validation_failed', {
+      failure_reason: failureReason,
+      total: roundMoney(total),
+      line_count: items.length,
+      has_shipping_address: hasShippingAddress,
+    })
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
 
     if (!hasShippingAddress) {
+      trackValidationFailure('missing_shipping_address')
       setError('Save a complete shipping address on your profile before placing an order.')
       return
     }
@@ -47,6 +59,7 @@ export default function Checkout() {
       !payment.expiry.trim() ||
       payment.cvc.trim().length < 3
     ) {
+      trackValidationFailure('incomplete_payment')
       setError('Please fill in complete payment details (demo — no charge made).')
       return
     }
@@ -63,6 +76,20 @@ export default function Checkout() {
       placedAt: new Date().toISOString(),
     }
     sessionStorage.setItem('pieriot-last-order', JSON.stringify(order))
+
+    // Main conversion milestone: validation passed and the order was built.
+    trackEvent('order_placed', {
+      orderId,
+      total: roundMoney(total),
+      subtotal: roundMoney(subtotal),
+      shipping: roundMoney(shipping),
+      free_shipping: shipping === 0,
+      line_count: items.length,
+      item_quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+      product_ids: [...new Set(items.map((item) => item.productId))].slice(0, 10),
+      shipping_state: (profile.state || '').trim().toUpperCase(),
+    })
+
     clearCart()
     navigate(`/success/${orderId}`)
   }

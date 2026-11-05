@@ -1,6 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ProductCard from '../components/ProductCard'
 import { categories, pies } from '../data/pies'
+import { trackEvent } from '../utils/pendo'
+
+// Matches the initial maxPrice state below; used to skip the untouched default view.
+const DEFAULT_MAX_PRICE = 40
+const SEARCH_TRACK_DEBOUNCE_MS = 800
 
 export default function Shop() {
   const [query, setQuery] = useState('')
@@ -31,6 +36,31 @@ export default function Shop() {
 
     return list
   }, [query, category, sort, maxPrice])
+
+  // Debounced so typing a query reports one search once the user pauses,
+  // rather than one event per keystroke. The untouched default view is not a search.
+  const resultsCount = filtered.length
+  useEffect(() => {
+    const trimmedQuery = query.trim()
+    const isDefaultView =
+      !trimmedQuery &&
+      category === 'All' &&
+      sort === 'featured' &&
+      maxPrice === DEFAULT_MAX_PRICE
+    if (isDefaultView) return undefined
+
+    const timer = window.setTimeout(() => {
+      trackEvent('shop_search_performed', {
+        query: trimmedQuery.slice(0, 100),
+        category,
+        sort,
+        maxPrice,
+        resultsCount,
+        totalCount: pies.length,
+      })
+    }, SEARCH_TRACK_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [query, category, sort, maxPrice, resultsCount])
 
   return (
     <div className="page shop">

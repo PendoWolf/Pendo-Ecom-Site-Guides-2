@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext'
+import { trackEvent } from '../utils/pendo'
 
 export default function Profile() {
   const { profile, updateProfile, hasShippingAddress } = useProfile()
@@ -15,6 +16,14 @@ export default function Profile() {
   const onSubmit = (e) => {
     e.preventDefault()
     updateProfile(form)
+    // Non-PII summary of the saved address; a complete address unlocks checkout.
+    trackEvent('shipping_address_saved', {
+      is_first_address: !hasShippingAddress,
+      state: (form.state || '').trim().toUpperCase(),
+      has_address2: Boolean(form.address2?.trim()),
+      has_phone: Boolean(form.phone?.trim()),
+      has_delivery_notes: Boolean(form.deliveryNotes?.trim()),
+    })
     setSaved(true)
   }
 

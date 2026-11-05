@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ProductCard from '../components/ProductCard'
 import { categories, pies } from '../data/pies'
+import { trackEvent } from '../lib/analytics'
+
+const SEARCH_TRACK_DEBOUNCE_MS = 800
 
 export default function Shop() {
   const [query, setQuery] = useState('')
@@ -31,6 +34,32 @@ export default function Shop() {
 
     return list
   }, [query, category, sort, maxPrice])
+
+  // Start from the default (unsearched) state so the initial render is not reported
+  const lastTrackedSearch = useRef(JSON.stringify(['', 'All', 'featured', 40]))
+  const resultsCount = filtered.length
+
+  // Debounced: report the search once the user pauses typing or changing filters
+  useEffect(() => {
+    const trimmedQuery = query.trim()
+    const signature = JSON.stringify([trimmedQuery.toLowerCase(), category, sort, maxPrice])
+    if (signature === lastTrackedSearch.current) return
+
+    const timer = window.setTimeout(() => {
+      lastTrackedSearch.current = signature
+      trackEvent('catalog_search_performed', {
+        query: trimmedQuery.slice(0, 100),
+        category,
+        sort,
+        maxPrice,
+        resultsCount,
+        totalCount: pies.length,
+        zeroResults: resultsCount === 0,
+      })
+    }, SEARCH_TRACK_DEBOUNCE_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [query, category, sort, maxPrice, resultsCount])
 
   return (
     <div className="page shop">

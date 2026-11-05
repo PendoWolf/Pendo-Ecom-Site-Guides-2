@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { formatPrice } from '../data/pies'
 import { useCart } from '../context/CartContext'
 import { useProfile } from '../context/ProfileContext'
+import { trackEvent } from '../lib/analytics'
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -19,6 +20,7 @@ export default function Checkout() {
 
   const shipping = subtotal >= 75 || subtotal === 0 ? 0 : 8
   const total = subtotal + shipping
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   if (items.length === 0) {
     return (
@@ -37,6 +39,13 @@ export default function Checkout() {
     setError('')
 
     if (!hasShippingAddress) {
+      // Checkout was blocked before an order could be placed
+      trackEvent('checkout_blocked', {
+        reason: 'missing_shipping_address',
+        total,
+        itemCount,
+        hasShippingAddress,
+      })
       setError('Save a complete shipping address on your profile before placing an order.')
       return
     }
@@ -47,6 +56,13 @@ export default function Checkout() {
       !payment.expiry.trim() ||
       payment.cvc.trim().length < 3
     ) {
+      // Checkout was blocked before an order could be placed
+      trackEvent('checkout_blocked', {
+        reason: 'incomplete_payment_details',
+        total,
+        itemCount,
+        hasShippingAddress,
+      })
       setError('Please fill in complete payment details (demo — no charge made).')
       return
     }
@@ -63,6 +79,19 @@ export default function Checkout() {
       placedAt: new Date().toISOString(),
     }
     sessionStorage.setItem('pieriot-last-order', JSON.stringify(order))
+    // Confirmed conversion: checks passed and the order was built
+    trackEvent('order_placed', {
+      orderId,
+      total,
+      subtotal,
+      shipping,
+      freeShipping: shipping === 0,
+      lineCount: items.length,
+      itemCount,
+      productIds: [...new Set(items.map((item) => item.productId))],
+      shippingState: (profile.state || '').trim().slice(0, 32),
+      hasDeliveryNotes: Boolean(profile.deliveryNotes && profile.deliveryNotes.trim()),
+    })
     clearCart()
     navigate(`/success/${orderId}`)
   }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext'
+import { trackEvent } from '../lib/analytics'
 
 export default function Profile() {
   const { profile, updateProfile, hasShippingAddress } = useProfile()
@@ -15,6 +16,14 @@ export default function Profile() {
   const onSubmit = (e) => {
     e.preventDefault()
     updateProfile(form)
+    // Shipping address saved; send only non-personal properties
+    trackEvent('shipping_address_saved', {
+      isFirstAddress: !hasShippingAddress,
+      state: (form.state || '').trim().slice(0, 32),
+      hasPhone: Boolean(form.phone && form.phone.trim()),
+      hasAddress2: Boolean(form.address2 && form.address2.trim()),
+      hasDeliveryNotes: Boolean(form.deliveryNotes && form.deliveryNotes.trim()),
+    })
     setSaved(true)
   }
 

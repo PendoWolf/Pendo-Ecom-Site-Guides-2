@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { trackEvent } from '../lib/analytics'
 
 const topics = [
   'Order issue',
@@ -27,6 +28,11 @@ export default function Report() {
     const reports = JSON.parse(localStorage.getItem('pieriot-reports') || '[]')
     reports.push({ ...form, at: new Date().toISOString() })
     localStorage.setItem('pieriot-reports', JSON.stringify(reports))
+    // Report saved; send only non-personal fields (no name, email or message text)
+    trackEvent('feedback_report_submitted', {
+      topic: form.topic,
+      messageLength: form.message.trim().length,
+    })
     setSent(true)
   }
 

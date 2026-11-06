@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { trackEvent } from '../analytics/track'
 
 const questions = [
   {
@@ -35,6 +36,13 @@ export default function Poll() {
     const existing = JSON.parse(localStorage.getItem('pieriot-polls') || '[]')
     existing.push({ answers, at: new Date().toISOString() })
     localStorage.setItem('pieriot-polls', JSON.stringify(existing))
+    // Satisfaction ratings chosen for each question
+    trackEvent('experience_poll_submitted', {
+      crust: answers.crust,
+      flavor: answers.flavor,
+      shipping: answers.shipping,
+      reorder: answers.reorder,
+    })
     setSubmitted(true)
   }
 

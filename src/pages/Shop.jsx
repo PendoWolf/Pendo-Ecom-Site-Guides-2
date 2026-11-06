@@ -1,6 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { trackEvent } from '../analytics/track'
 import ProductCard from '../components/ProductCard'
 import { categories, pies } from '../data/pies'
+
+const SEARCH_TRACK_DEBOUNCE_MS = 1000
 
 export default function Shop() {
   const [query, setQuery] = useState('')
@@ -31,6 +34,29 @@ export default function Shop() {
 
     return list
   }, [query, category, sort, maxPrice])
+
+  const resultsCount = filtered.length
+
+  // Report a catalog search once the query/filters settle. Skip the untouched
+  // default view (a plain /shop visit is already a Page view, not a search).
+  useEffect(() => {
+    const trimmedQuery = query.trim()
+    const isDefaultView =
+      !trimmedQuery && category === 'All' && sort === 'featured' && maxPrice === 40
+    if (isDefaultView) return undefined
+
+    const timer = window.setTimeout(() => {
+      trackEvent('catalog_search_performed', {
+        query: trimmedQuery.slice(0, 100),
+        category,
+        sort,
+        maxPrice,
+        resultsCount,
+        totalCount: pies.length,
+      })
+    }, SEARCH_TRACK_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [query, category, sort, maxPrice, resultsCount])
 
   return (
     <div className="page shop">

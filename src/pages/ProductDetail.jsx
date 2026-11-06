@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { trackEvent } from '../analytics/track'
 import PieVisual from '../components/PieVisual'
 import { crusts, formatPrice, getPieBySlug, sizes } from '../data/pies'
 import { useCart } from '../context/CartContext'
@@ -37,6 +38,16 @@ export default function ProductDetail() {
       { ...pie, price: unitPrice },
       { size, crust, quantity },
     )
+    // Which pie and variant was added, with the computed unit price
+    trackEvent('item_added_to_cart', {
+      productId: pie.id,
+      slug: pie.slug,
+      category: pie.category,
+      size,
+      crust,
+      quantity,
+      unitPrice,
+    })
     setAdded(true)
     window.setTimeout(() => setAdded(false), 2200)
   }

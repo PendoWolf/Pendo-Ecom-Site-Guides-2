@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { trackEvent } from '../analytics/track'
 import { formatPrice } from '../data/pies'
 import { useCart } from '../context/CartContext'
 import { useProfile } from '../context/ProfileContext'
@@ -36,7 +37,18 @@ export default function Checkout() {
     e.preventDefault()
     setError('')
 
+    // Checkout friction: the order was stopped by a validation error
+    const trackBlocked = (failureReason) => {
+      trackEvent('checkout_blocked', {
+        failure_reason: failureReason,
+        hasShippingAddress,
+        total,
+        line_count: items.length,
+      })
+    }
+
     if (!hasShippingAddress) {
+      trackBlocked('missing_shipping_address')
       setError('Save a complete shipping address on your profile before placing an order.')
       return
     }
@@ -47,6 +59,7 @@ export default function Checkout() {
       !payment.expiry.trim() ||
       payment.cvc.trim().length < 3
     ) {
+      trackBlocked('incomplete_payment')
       setError('Please fill in complete payment details (demo — no charge made).')
       return
     }
@@ -63,6 +76,18 @@ export default function Checkout() {
       placedAt: new Date().toISOString(),
     }
     sessionStorage.setItem('pieriot-last-order', JSON.stringify(order))
+    // Conversion: order placed with revenue and cart contents (no address PII)
+    trackEvent('order_placed', {
+      orderId,
+      total,
+      subtotal,
+      shipping,
+      free_shipping: shipping === 0,
+      line_count: items.length,
+      item_quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+      product_ids: [...new Set(items.map((item) => item.productId))].slice(0, 10),
+      shipping_state: profile.state,
+    })
     clearCart()
     navigate(`/success/${orderId}`)
   }

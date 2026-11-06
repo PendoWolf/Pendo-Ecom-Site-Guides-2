@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { trackEvent } from '../analytics/track'
 import { useProfile } from '../context/ProfileContext'
 
 export default function Profile() {
@@ -15,6 +16,14 @@ export default function Profile() {
   const onSubmit = (e) => {
     e.preventDefault()
     updateProfile(form)
+    // Shipping address saved — only non-PII shape of the address is sent
+    trackEvent('shipping_profile_saved', {
+      is_first_address: !hasShippingAddress,
+      has_phone: Boolean(form.phone?.trim()),
+      has_address2: Boolean(form.address2?.trim()),
+      has_delivery_notes: Boolean(form.deliveryNotes?.trim()),
+      state: form.state?.trim() || '',
+    })
     setSaved(true)
   }
 

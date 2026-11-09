@@ -14,6 +14,7 @@ export default function Home() {
         <div className="hero__content">
           <p className="hero__brand">Pie Riot</p>
           <h1 className="hero__headline">Flavor without manners.</h1>
+          <p className="hero__shipping-note">Shipping information: pies arrive chilled overnight.</p>
           <p className="hero__sub">
             Twelve wild pies. Flaky crusts. Overnight chilled shipping to your door.
           </p>
